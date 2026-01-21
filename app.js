@@ -28,7 +28,7 @@ function showDashboard(username) {
 
 // Variables for sensors
 let sensorInterval = null;
-let dataBuffer = []; // Store recent readings
+let dataBuffer = [];
 const BUFFER_SIZE = 50;
 
 let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -110,6 +110,7 @@ function updateSensorDisplay() {
 function processData() {
     if (dataBuffer.length < 10) {
         document.getElementById('dreamState').textContent = 'State: Detecting...';
+        document.getElementById('dreamState').style.color = '#333';
         return;
     }
 
