@@ -90,7 +90,6 @@ function handleMotion(event) {
 }
 
 function handleOrientation(event) {
-    // Magnet data updated in display if needed
     document.getElementById('magX').textContent = (event.alpha || 0).toFixed(2);
     document.getElementById('magY').textContent = (event.beta || 0).toFixed(2);
     document.getElementById('magZ').textContent = (event.gamma || 0).toFixed(2);
@@ -114,13 +113,12 @@ function processData() {
         return;
     }
 
-    // Calculate movement (subtract gravity ~9.8 on Z for better calm detection)
     const accels = dataBuffer.map(d => Math.abs(d.accelX) + Math.abs(d.accelY) + Math.abs(d.accelZ - 9.8));
     const mean = accels.reduce((a, b) => a + b, 0) / accels.length;
     const variance = accels.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / accels.length;
 
     let stateText = variance < 8 ? 'Calm (possible sleep)' : 'Active (moving)';
-    let stateColor = variance < 8 ? '#006400' : '#d9534f'; // Dark green for calm, red for active
+    let stateColor = variance < 8 ? '#006400' : '#d9534f';
 
     document.getElementById('dreamState').textContent = `State: ${stateText}`;
     document.getElementById('dreamState').style.color = stateColor;
@@ -138,7 +136,6 @@ document.getElementById('stopSessionBtn').addEventListener('click', function() {
     document.getElementById('stopSessionBtn').style.display = 'none';
     document.getElementById('sensorStatus').textContent = 'Sensors: Stopped';
     document.getElementById('dreamState').textContent = 'State: Detecting...';
-    // Reset numbers
     document.getElementById('accelX').textContent = '0';
     document.getElementById('accelY').textContent = '0';
     document.getElementById('accelZ').textContent = '0';
