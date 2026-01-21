@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dream Control</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ffffff">
+</head>
+<body>
+    <div id="loginSection">
+        <h1>Dream Control Site</h1>
+        <p>Log in to start (offline and private).</p>
+        <input type="text" id="username" placeholder="Username" /><br><br>
+        <input type="password" id="password" placeholder="Password" /><br><br>
+        <button id="loginBtn">Log In</button>
+        <p id="loginMessage"></p>
+    </div>
+
+    <div id="dashboardSection" style="display:none;">
+        <h1>Welcome, <span id="welcomeName"></span>!</h1>
+        <p>You are logged in. Ready for dream control.</p>
+        <button id="startSessionBtn">Start Dream Session</button><br><br>
+        <button id="stopSessionBtn" style="display:none; background-color:#f44336;">Stop Session</button><br><br>
+        <button id="logoutBtn">Log Out</button>
+
+        <div id="sensorData" style="margin-top:30px; padding:20px; background:#fff; border:1px solid #ddd; display:none;">
+            <h2>Live Sensor Readings (for testing)</h2>
+            <p>Accel X: <span id="accelX">0</span> | Y: <span id="accelY">0</span> | Z: <span id="accelZ">0</span></p>
+            <p>Gyro X: <span id="gyroX">0</span> | Y: <span id="gyroY">0</span> | Z: <span id="gyroZ">0</span></p>
+            <p>Magnet X: <span id="magX">0</span> | Y: <span id="magY">0</span> | Z: <span id="magZ">0</span></p>
+            <p id="sensorStatus">Sensors: Not started</p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

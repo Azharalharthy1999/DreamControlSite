@@ -1,0 +1,48 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 30px;
+    background-color: #f8f8f8;
+    margin: 0;
+}
+
+h1, h2 {
+    color: #333;
+}
+
+input {
+    padding: 10px;
+    width: 200px;
+    font-size: 16px;
+}
+
+button {
+    padding: 15px 30px;
+    font-size: 18px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 10px;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+#stopSessionBtn:hover {
+    background-color: #da190b;
+}
+
+#loginMessage {
+    color: red;
+    min-height: 20px;
+}
+
+#sensorData {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: left;
+    font-family: monospace;
+}
