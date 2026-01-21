@@ -28,8 +28,8 @@ function showDashboard(username) {
 
 // Variables for sensors
 let sensorInterval = null;
-let dataBuffer = []; // Store recent readings for processing
-const BUFFER_SIZE = 50; // Keep last 50 readings
+let dataBuffer = []; // Store recent readings
+const BUFFER_SIZE = 50;
 
 let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
@@ -61,11 +61,12 @@ function startSensors() {
     window.addEventListener('devicemotion', handleMotion);
     window.addEventListener('deviceorientation', handleOrientation);
 
-    document.getElementById('sensorStatus').textContent = 'Sensors: Running – Move device to test';
+    document.getElementById('sensorStatus').textContent = 'Sensors: Running – Hold still for calm test';
+    document.getElementById('dreamState').textContent = 'State: Detecting...';
 
     sensorInterval = setInterval(() => {
         updateSensorDisplay();
-        processData(); // New: check for calm/active
+        processData();
     }, 500);
 }
 
@@ -84,13 +85,15 @@ function handleMotion(event) {
         gyroZ = event.rotationRate.gamma || 0;
     }
 
-    // Save to buffer
     dataBuffer.push({accelX, accelY, accelZ, gyroX, gyroY, gyroZ});
     if (dataBuffer.length > BUFFER_SIZE) dataBuffer.shift();
 }
 
 function handleOrientation(event) {
-    // Magnet data (optional for now)
+    // Magnet data updated in display if needed
+    document.getElementById('magX').textContent = (event.alpha || 0).toFixed(2);
+    document.getElementById('magY').textContent = (event.beta || 0).toFixed(2);
+    document.getElementById('magZ').textContent = (event.gamma || 0).toFixed(2);
 }
 
 function updateSensorDisplay() {
@@ -106,15 +109,21 @@ function updateSensorDisplay() {
 }
 
 function processData() {
-    if (dataBuffer.length < 10) return;
+    if (dataBuffer.length < 10) {
+        document.getElementById('dreamState').textContent = 'State: Detecting...';
+        return;
+    }
 
-    // Simple variance on accel (high = moving, low = calm)
-    const accels = dataBuffer.map(d => Math.abs(d.accelX) + Math.abs(d.accelY) + Math.abs(d.accelZ));
+    // Calculate movement (subtract gravity ~9.8 on Z for better calm detection)
+    const accels = dataBuffer.map(d => Math.abs(d.accelX) + Math.abs(d.accelY) + Math.abs(d.accelZ - 9.8));
     const mean = accels.reduce((a, b) => a + b, 0) / accels.length;
     const variance = accels.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / accels.length;
 
-    let state = variance < 5 ? 'Calm (possible sleep)' : 'Active (moving)';
-    document.getElementById('sensorStatus').textContent = `State: ${state} | Sensors running`;
+    let stateText = variance < 8 ? 'Calm (possible sleep)' : 'Active (moving)';
+    let stateColor = variance < 8 ? '#006400' : '#d9534f'; // Dark green for calm, red for active
+
+    document.getElementById('dreamState').textContent = `State: ${stateText}`;
+    document.getElementById('dreamState').style.color = stateColor;
 }
 
 // Stop session
@@ -128,15 +137,31 @@ document.getElementById('stopSessionBtn').addEventListener('click', function() {
     document.getElementById('startSessionBtn').style.display = 'inline-block';
     document.getElementById('stopSessionBtn').style.display = 'none';
     document.getElementById('sensorStatus').textContent = 'Sensors: Stopped';
-    // Reset display
+    document.getElementById('dreamState').textContent = 'State: Detecting...';
+    // Reset numbers
     document.getElementById('accelX').textContent = '0';
     document.getElementById('accelY').textContent = '0';
     document.getElementById('accelZ').textContent = '0';
     document.getElementById('gyroX').textContent = '0';
     document.getElementById('gyroY').textContent = '0';
     document.getElementById('gyroZ').textContent = '0';
+    document.getElementById('magX').textContent = '0';
+    document.getElementById('magY').textContent = '0';
+    document.getElementById('magZ').textContent = '0';
 });
 
-// Logout same as before...
+// Logout
+document.getElementById('logoutBtn').addEventListener('click', function() {
+    localStorage.removeItem('username');
+    document.getElementById('dashboardSection').style.display = 'none';
+    document.getElementById('loginSection').style.display = 'block';
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+});
 
-// Service Worker same...
+// Service Worker
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+        .then(() => console.log('Service Worker registered'))
+        .catch(err => console.log('Service Worker error:', err));
+}
