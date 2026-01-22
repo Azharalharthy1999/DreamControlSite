@@ -1,4 +1,4 @@
-// Direct to dashboard – no login at all
+// No login – straight to dashboard
 document.getElementById('dashboardSection').style.display = 'block';
 
 // Variables
@@ -63,7 +63,7 @@ function startBarometer() {
         });
         baro.start();
     } else {
-        document.getElementById('baroPressure').textContent = 'N/A (not supported on this device)';
+        document.getElementById('baroPressure').textContent = 'N/A (not supported on iPhone)';
     }
 }
 
