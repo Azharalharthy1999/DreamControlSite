@@ -29,7 +29,7 @@ function showDashboard(username) {
 // Variables for sensors
 let sensorInterval = null;
 let dataBuffer = [];
-const BUFFER_SIZE = 50;
+const BUFFER_SIZE = 100; // Longer buffer for REM patterns
 
 let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
@@ -108,21 +108,34 @@ function updateSensorDisplay() {
 }
 
 function processData() {
-    if (dataBuffer.length < 10) {
+    if (dataBuffer.length < 20) {
         document.getElementById('dreamState').textContent = 'State: Detecting...';
         document.getElementById('dreamState').style.color = '#333';
         return;
     }
 
+    // Base calm/active
     const accels = dataBuffer.map(d => Math.abs(d.accelX) + Math.abs(d.accelY) + Math.abs(d.accelZ - 9.8));
     const mean = accels.reduce((a, b) => a + b, 0) / accels.length;
     const variance = accels.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / accels.length;
 
-    let stateText = variance < 8 ? 'Calm (possible sleep)' : 'Active (moving)';
-    let stateColor = variance < 8 ? '#006400' : '#d9534f';
+    if (variance > 8) {
+        document.getElementById('dreamState').textContent = 'State: Active (moving)';
+        document.getElementById('dreamState').style.color = '#d9534f';
+        return;
+    }
 
-    document.getElementById('dreamState').textContent = `State: ${stateText}`;
-    document.getElementById('dreamState').style.color = stateColor;
+    // REM detection in calm state: look for small spikes in accel (eye moves) and irregular gyro (breathing)
+    const accelSpikes = dataBuffer.filter(d => Math.abs(d.accelX) > 0.5 || Math.abs(d.accelY) > 0.5).length;
+    const gyroIrregular = dataBuffer.slice(-20).reduce((sum, d) => sum + Math.abs(d.gyroX) + Math.abs(d.gyroY), 0) / 20 > 5;
+
+    if (accelSpikes > 5 || gyroIrregular) {
+        document.getElementById('dreamState').textContent = 'REM Detected (dream likely)';
+        document.getElementById('dreamState').style.color = '#4CAF50'; // Bright green for REM
+    } else {
+        document.getElementById('dreamState').textContent = 'State: Calm (no REM yet)';
+        document.getElementById('dreamState').style.color = '#006400';
+    }
 }
 
 // Stop session
