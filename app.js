@@ -1,21 +1,15 @@
-// Auto "login" for Azhar – no login needed
-showDashboard('Azhar');
-
-// Show dashboard (always on)
-function showDashboard(username) {
-    document.getElementById('dashboardSection').style.display = 'block';
-    document.getElementById('welcomeName').textContent = username;
-}
+// Direct to dashboard – no login
+document.getElementById('dashboardSection').style.display = 'block';
 
 // Variables for sensors
 let sensorInterval = null;
 let dataBuffer = [];
-const BUFFER_SIZE = 200; // Longer for boostful bed sensitivity
+const BUFFER_SIZE = 200;
 let inductionActive = false;
 let calmVarianceAvg = localStorage.getItem('calmVarianceAvg') ? parseFloat(localStorage.getItem('calmVarianceAvg')) : 4;
 let remSpikeThreshold = localStorage.getItem('remSpikeThreshold') ? parseFloat(localStorage.getItem('remSpikeThreshold')) : 0.4;
 let remGyroThreshold = localStorage.getItem('remGyroThreshold') ? parseFloat(localStorage.getItem('remGyroThreshold')) : 6;
-let baroBuffer = []; // For breathing
+let baroBuffer = [];
 
 let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
@@ -25,6 +19,7 @@ document.getElementById('startSessionBtn').addEventListener('click', async funct
     document.getElementById('startSessionBtn').style.display = 'none';
     document.getElementById('stopSessionBtn').style.display = 'inline-block';
     document.getElementById('sensorStatus').textContent = 'Sensors: Preparing...';
+    document.getElementById('dreamState').textContent = 'State: Detecting...';
 
     if (isIOS) {
         try {
@@ -46,26 +41,25 @@ document.getElementById('startSessionBtn').addEventListener('click', async funct
 function startSensors() {
     window.addEventListener('devicemotion', handleMotion);
     window.addEventListener('deviceorientation', handleOrientation);
-    startBarometer(); // New breathing boost
+    startBarometer();
 
-    document.getElementById('sensorStatus').textContent = 'Sensors: Running – Hold still for calm test';
+    document.getElementById('sensorStatus').textContent = 'Sensors: Running – Place beside bed for sleep';
     document.getElementById('dreamState').textContent = 'State: Detecting...';
-    inductionActive = false;
 
     sensorInterval = setInterval(() => {
         updateSensorDisplay();
         processData();
-    }, 300); // Faster loop for boost
+    }, 300);
 }
 
-// New: Barometer for breathing boost
 function startBarometer() {
     if ('Barometer' in window) {
         const baro = new Barometer({ frequency: 60 });
         baro.addEventListener('reading', () => {
-            baroBuffer.push(baro.pressure || 0);
+            const pressure = baro.pressure || 0;
+            baroBuffer.push(pressure);
             if (baroBuffer.length > BUFFER_SIZE) baroBuffer.shift();
-            document.getElementById('baroPressure').textContent = (baro.pressure || 0).toFixed(2);
+            document.getElementById('baroPressure').textContent = pressure.toFixed(2);
         });
         baro.start();
     } else {
@@ -73,7 +67,30 @@ function startBarometer() {
     }
 }
 
-// handleMotion/handleOrientation same as before
+function handleMotion(event) {
+    let accelX = 0, accelY = 0, accelZ = 0;
+    let gyroX = 0, gyroY = 0, gyroZ = 0;
+
+    if (event.accelerationIncludingGravity) {
+        accelX = event.accelerationIncludingGravity.x || 0;
+        accelY = event.accelerationIncludingGravity.y || 0;
+        accelZ = event.accelerationIncludingGravity.z || 0;
+    }
+    if (event.rotationRate) {
+        gyroX = event.rotationRate.alpha || 0;
+        gyroY = event.rotationRate.beta || 0;
+        gyroZ = event.rotationRate.gamma || 0;
+    }
+
+    dataBuffer.push({accelX, accelY, accelZ, gyroX, gyroY, gyroZ});
+    if (dataBuffer.length > BUFFER_SIZE) dataBuffer.shift();
+}
+
+function handleOrientation(event) {
+    document.getElementById('magX').textContent = (event.alpha || 0).toFixed(2);
+    document.getElementById('magY').textContent = (event.beta || 0).toFixed(2);
+    document.getElementById('magZ').textContent = (event.gamma || 0).toFixed(2);
+}
 
 function updateSensorDisplay() {
     if (dataBuffer.length > 0) {
@@ -105,17 +122,17 @@ function processData() {
         return;
     }
 
-    // REM with breathing boost (barometer variance for irregularity)
     const recent = dataBuffer.slice(-40);
     const accelSpikes = recent.filter(d => Math.abs(d.accelX) > remSpikeThreshold || Math.abs(d.accelY) > remSpikeThreshold).length;
     const gyroVar = recent.reduce((sum, d) => sum + Math.abs(d.gyroX) + Math.abs(d.gyroY) + Math.abs(d.gyroZ), 0) / recent.length;
+
     let breathingVar = 0;
     if (baroBuffer.length > 20) {
         const baroMean = baroBuffer.reduce((a, b) => a + b, 0) / baroBuffer.length;
-        breathingVar = baroBuffer.reduce((a, b) => a + Math.pow(b - baroMean, 2), 0) / baroBuffer.length * 100; // Scaled for sensitivity
+        breathingVar = baroBuffer.reduce((a, b) => a + Math.pow(b - baroMean, 2), 0) / baroBuffer.length * 100;
     }
 
-    if (accelSpikes > 4 || gyroVar > remGyroThreshold || breathingVar > 0.5) { // Boost with breathing
+    if (accelSpikes > 4 || gyroVar > remGyroThreshold || breathingVar > 0.5) {
         inductionActive = true;
         document.getElementById('dreamState').textContent = 'Lucidity induction active – dream control starting';
         document.getElementById('dreamState').style.color = '#2196F3';
@@ -156,7 +173,6 @@ document.getElementById('stopSessionBtn').addEventListener('click', function() {
     document.getElementById('stopSessionBtn').style.display = 'none';
     document.getElementById('sensorStatus').textContent = 'Sensors: Stopped';
     document.getElementById('dreamState').textContent = 'State: Detecting...';
-    // Reset numbers
     document.getElementById('accelX').textContent = '0';
     document.getElementById('accelY').textContent = '0';
     document.getElementById('accelZ').textContent = '0';
@@ -169,9 +185,7 @@ document.getElementById('stopSessionBtn').addEventListener('click', function() {
     document.getElementById('baroPressure').textContent = '0';
 });
 
-// Logout removed
-
-// Service Worker same
+// Service Worker
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
         .then(() => console.log('Service Worker registered'))
