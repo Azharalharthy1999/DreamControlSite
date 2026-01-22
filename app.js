@@ -30,6 +30,7 @@ function showDashboard(username) {
 let sensorInterval = null;
 let dataBuffer = [];
 const BUFFER_SIZE = 100;
+let inductionActive = false; // Track if inducing
 
 let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
@@ -63,6 +64,7 @@ function startSensors() {
 
     document.getElementById('sensorStatus').textContent = 'Sensors: Running – Hold still for calm test';
     document.getElementById('dreamState').textContent = 'State: Detecting...';
+    inductionActive = false;
 
     sensorInterval = setInterval(() => {
         updateSensorDisplay();
@@ -114,43 +116,52 @@ function processData() {
         return;
     }
 
-    // Base calm/active (higher threshold for calm)
+    // Base calm/active
     const accels = dataBuffer.map(d => Math.abs(d.accelX) + Math.abs(d.accelY) + Math.abs(d.accelZ - 9.8));
     const mean = accels.reduce((a, b) => a + b, 0) / accels.length;
     const variance = accels.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / accels.length;
 
-    if (variance > 12) { // Raised for less false active from hand
+    if (variance > 12) {
         document.getElementById('dreamState').textContent = 'State: Active (moving)';
         document.getElementById('dreamState').style.color = '#d9534f';
+        inductionActive = false;
         return;
     }
 
-    // REM in calm: more spikes needed, ignore tiny noise
+    // REM in calm
     const recent = dataBuffer.slice(-40);
-    const accelSpikes = recent.filter(d => Math.abs(d.accelX) > 0.8 || Math.abs(d.accelY) > 0.8).length; // Raised threshold
+    const accelSpikes = recent.filter(d => Math.abs(d.accelX) > 0.8 || Math.abs(d.accelY) > 0.8).length;
     const gyroVar = recent.reduce((sum, d) => sum + Math.abs(d.gyroX) + Math.abs(d.gyroY) + Math.abs(d.gyroZ), 0) / recent.length;
 
-    if (accelSpikes > 8 || gyroVar > 10) { // Need more evidence for REM
-        document.getElementById('dreamState').textContent = 'REM Detected (dream likely)';
-        document.getElementById('dreamState').style.color = '#4CAF50';
+    if (accelSpikes > 8 || gyroVar > 10) {
+        inductionActive = true;
+        document.getElementById('dreamState').textContent = 'Lucidity induction active – dream control starting';
+        document.getElementById('dreamState').style.color = '#2196F3'; // Bright blue
     } else {
-        document.getElementById('dreamState').textContent = 'State: Calm (no REM yet)';
-        document.getElementById('dreamState').style.color = '#006400';
+        if (inductionActive) {
+            document.getElementById('dreamState').textContent = 'Control sustained (closed-loop active)';
+            document.getElementById('dreamState').style.color = '#2196F3';
+        } else {
+            document.getElementById('dreamState').textContent = 'State: Calm (no REM yet)';
+            document.getElementById('dreamState').style.color = '#006400';
+        }
     }
 }
 
-// Stop session same as before...
+// Stop session
 document.getElementById('stopSessionBtn').addEventListener('click', function() {
     window.removeEventListener('devicemotion', handleMotion);
     window.removeEventListener('deviceorientation', handleOrientation);
     clearInterval(sensorInterval);
     dataBuffer = [];
+    inductionActive = false;
 
     document.getElementById('sensorData').style.display = 'none';
     document.getElementById('startSessionBtn').style.display = 'inline-block';
     document.getElementById('stopSessionBtn').style.display = 'none';
     document.getElementById('sensorStatus').textContent = 'Sensors: Stopped';
     document.getElementById('dreamState').textContent = 'State: Detecting...';
+    // Reset numbers...
     document.getElementById('accelX').textContent = '0';
     document.getElementById('accelY').textContent = '0';
     document.getElementById('accelZ').textContent = '0';
@@ -162,7 +173,7 @@ document.getElementById('stopSessionBtn').addEventListener('click', function() {
     document.getElementById('magZ').textContent = '0';
 });
 
-// Logout and Service Worker same as before...
+// Logout and Service Worker same...
 document.getElementById('logoutBtn').addEventListener('click', function() {
     localStorage.removeItem('username');
     document.getElementById('dashboardSection').style.display = 'none';
