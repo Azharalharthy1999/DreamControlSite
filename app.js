@@ -29,7 +29,7 @@ function showDashboard(username) {
 // Variables for sensors
 let sensorInterval = null;
 let dataBuffer = [];
-const BUFFER_SIZE = 100; // Longer buffer for REM patterns
+const BUFFER_SIZE = 100;
 
 let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
@@ -114,31 +114,32 @@ function processData() {
         return;
     }
 
-    // Base calm/active
+    // Base calm/active (higher threshold for calm)
     const accels = dataBuffer.map(d => Math.abs(d.accelX) + Math.abs(d.accelY) + Math.abs(d.accelZ - 9.8));
     const mean = accels.reduce((a, b) => a + b, 0) / accels.length;
     const variance = accels.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / accels.length;
 
-    if (variance > 8) {
+    if (variance > 12) { // Raised for less false active from hand
         document.getElementById('dreamState').textContent = 'State: Active (moving)';
         document.getElementById('dreamState').style.color = '#d9534f';
         return;
     }
 
-    // REM detection in calm state: look for small spikes in accel (eye moves) and irregular gyro (breathing)
-    const accelSpikes = dataBuffer.filter(d => Math.abs(d.accelX) > 0.5 || Math.abs(d.accelY) > 0.5).length;
-    const gyroIrregular = dataBuffer.slice(-20).reduce((sum, d) => sum + Math.abs(d.gyroX) + Math.abs(d.gyroY), 0) / 20 > 5;
+    // REM in calm: more spikes needed, ignore tiny noise
+    const recent = dataBuffer.slice(-40);
+    const accelSpikes = recent.filter(d => Math.abs(d.accelX) > 0.8 || Math.abs(d.accelY) > 0.8).length; // Raised threshold
+    const gyroVar = recent.reduce((sum, d) => sum + Math.abs(d.gyroX) + Math.abs(d.gyroY) + Math.abs(d.gyroZ), 0) / recent.length;
 
-    if (accelSpikes > 5 || gyroIrregular) {
+    if (accelSpikes > 8 || gyroVar > 10) { // Need more evidence for REM
         document.getElementById('dreamState').textContent = 'REM Detected (dream likely)';
-        document.getElementById('dreamState').style.color = '#4CAF50'; // Bright green for REM
+        document.getElementById('dreamState').style.color = '#4CAF50';
     } else {
         document.getElementById('dreamState').textContent = 'State: Calm (no REM yet)';
         document.getElementById('dreamState').style.color = '#006400';
     }
 }
 
-// Stop session
+// Stop session same as before...
 document.getElementById('stopSessionBtn').addEventListener('click', function() {
     window.removeEventListener('devicemotion', handleMotion);
     window.removeEventListener('deviceorientation', handleOrientation);
@@ -161,7 +162,7 @@ document.getElementById('stopSessionBtn').addEventListener('click', function() {
     document.getElementById('magZ').textContent = '0';
 });
 
-// Logout
+// Logout and Service Worker same as before...
 document.getElementById('logoutBtn').addEventListener('click', function() {
     localStorage.removeItem('username');
     document.getElementById('dashboardSection').style.display = 'none';
@@ -170,7 +171,6 @@ document.getElementById('logoutBtn').addEventListener('click', function() {
     document.getElementById('password').value = '';
 });
 
-// Service Worker
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
         .then(() => console.log('Service Worker registered'))
