@@ -1,7 +1,7 @@
-// Direct to dashboard – no login
+// Direct to dashboard – no login at all
 document.getElementById('dashboardSection').style.display = 'block';
 
-// Variables for sensors
+// Variables
 let sensorInterval = null;
 let dataBuffer = [];
 const BUFFER_SIZE = 200;
@@ -28,7 +28,7 @@ document.getElementById('startSessionBtn').addEventListener('click', async funct
             if (responseMotion === 'granted' && responseOrientation === 'granted') {
                 startSensors();
             } else {
-                document.getElementById('sensorStatus').textContent = 'Sensors: Permission denied';
+                document.getElementById('sensorStatus').textContent = 'Sensors: Permission denied – Allow in popup';
             }
         } catch (error) {
             document.getElementById('sensorStatus').textContent = 'Sensors: iOS permission error';
@@ -63,7 +63,7 @@ function startBarometer() {
         });
         baro.start();
     } else {
-        document.getElementById('baroPressure').textContent = 'N/A';
+        document.getElementById('baroPressure').textContent = 'N/A (not supported on this device)';
     }
 }
 
@@ -182,7 +182,7 @@ document.getElementById('stopSessionBtn').addEventListener('click', function() {
     document.getElementById('magX').textContent = '0';
     document.getElementById('magY').textContent = '0';
     document.getElementById('magZ').textContent = '0';
-    document.getElementById('baroPressure').textContent = '0';
+    document.getElementById('baroPressure').textContent = 'Detecting...';
 });
 
 // Service Worker
