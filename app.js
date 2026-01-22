@@ -9,12 +9,13 @@ let inductionActive = false;
 let remCounter = 0;
 const REM_REQUIRED = 8;
 let calmCounter = 0;
-const CALM_RESET = 10;
+const CALM_RESET = 5; // Shorter for quick reset to calm
+let varianceBuffer = []; // New: Filter variance for noise
+const VARIANCE_BUFFER_SIZE = 10; // Average over 10 readings
 let calmVarianceAvg = localStorage.getItem('calmVarianceAvg') ? parseFloat(localStorage.getItem('calmVarianceAvg')) : 6;
 let remSpikeThreshold = localStorage.getItem('remSpikeThreshold') ? parseFloat(localStorage.getItem('remSpikeThreshold')) : 0.8;
 let remGyroThreshold = localStorage.getItem('remGyroThreshold') ? parseFloat(localStorage.getItem('remGyroThreshold')) : 10;
 let baroBuffer = [];
-let learningNights = localStorage.getItem('learningNights') ? parseInt(localStorage.getItem('learningNights')) : 0;
 
 let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
@@ -25,9 +26,6 @@ document.getElementById('startSessionBtn').addEventListener('click', async funct
     document.getElementById('stopSessionBtn').style.display = 'inline-block';
     document.getElementById('sensorStatus').textContent = 'Sensors: Preparing...';
     document.getElementById('dreamState').textContent = 'State: Detecting...';
-    if (learningNights < 3) {
-        document.getElementById('sensorStatus').textContent += ' (Learning your patterns - night ' + (learningNights + 1) + '/5)';
-    }
 
     if (isIOS) {
         try {
@@ -53,6 +51,10 @@ function startSensors() {
 
     document.getElementById('sensorStatus').textContent = 'Sensors: Running – Place beside bed for sleep';
     document.getElementById('dreamState').textContent = 'State: Detecting...';
+    inductionActive = false;
+    remCounter = 0;
+    calmCounter = 0;
+    varianceBuffer = [];
 
     sensorInterval = setInterval(() => {
         updateSensorDisplay();
@@ -123,7 +125,11 @@ function processData() {
     const mean = accels.reduce((a, b) => a + b, 0) / accels.length;
     const variance = accels.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / accels.length;
 
-    if (variance > calmVarianceAvg + 15) {
+    varianceBuffer.push(variance);
+    if (varianceBuffer.length > VARIANCE_BUFFER_SIZE) varianceBuffer.shift();
+    const smoothedVariance = varianceBuffer.reduce((a, b) => a + b, 0) / varianceBuffer.length;
+
+    if (smoothedVariance > calmVarianceAvg + 15) {
         document.getElementById('dreamState').textContent = 'State: Active (moving)';
         document.getElementById('dreamState').style.color = '#d9534f';
         inductionActive = false;
@@ -186,11 +192,10 @@ document.getElementById('stopSessionBtn').addEventListener('click', function() {
     clearInterval(sensorInterval);
     dataBuffer = [];
     baroBuffer = [];
+    varianceBuffer = [];
     inductionActive = false;
     remCounter = 0;
     calmCounter = 0;
-    learningNights++;
-    localStorage.setItem('learningNights', learningNights);
 
     document.getElementById('sensorData').style.display = 'none';
     document.getElementById('startSessionBtn').style.display = 'inline-block';
