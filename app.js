@@ -6,8 +6,12 @@ let sensorInterval = null;
 let dataBuffer = [];
 const BUFFER_SIZE = 200;
 let inductionActive = false;
-let calmVarianceAvg = localStorage.getItem('calmVarianceAvg') ? parseFloat(localStorage.getItem('calmVarianceAvg')) : 6; // Raised for stable calm
-let remSpikeThreshold = localStorage.getItem('remSpikeThreshold') ? parseFloat(localStorage.getItem('remSpikeThreshold')) : 0.8; // Raised to avoid noise
+let remCounter = 0;
+const REM_REQUIRED = 5;
+let calmCounter = 0;
+const CALM_RESET = 20;
+let calmVarianceAvg = localStorage.getItem('calmVarianceAvg') ? parseFloat(localStorage.getItem('calmVarianceAvg')) : 6;
+let remSpikeThreshold = localStorage.getItem('remSpikeThreshold') ? parseFloat(localStorage.getItem('remSpikeThreshold')) : 0.8;
 let remGyroThreshold = localStorage.getItem('remGyroThreshold') ? parseFloat(localStorage.getItem('remGyroThreshold')) : 10;
 let baroBuffer = [];
 
@@ -45,6 +49,9 @@ function startSensors() {
 
     document.getElementById('sensorStatus').textContent = 'Sensors: Running – Place beside bed for sleep';
     document.getElementById('dreamState').textContent = 'State: Detecting...';
+    inductionActive = false;
+    remCounter = 0;
+    calmCounter = 0;
 
     sensorInterval = setInterval(() => {
         updateSensorDisplay();
@@ -115,10 +122,12 @@ function processData() {
     const mean = accels.reduce((a, b) => a + b, 0) / accels.length;
     const variance = accels.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / accels.length;
 
-    if (variance > calmVarianceAvg + 15) { // Higher for true moving, ignore noise
+    if (variance > calmVarianceAvg + 15) {
         document.getElementById('dreamState').textContent = 'State: Active (moving)';
         document.getElementById('dreamState').style.color = '#d9534f';
         inductionActive = false;
+        remCounter = 0;
+        calmCounter = 0;
         return;
     }
 
@@ -132,12 +141,22 @@ function processData() {
         breathingVar = baroBuffer.reduce((a, b) => a + Math.pow(b - baroMean, 2), 0) / baroBuffer.length * 100;
     }
 
-    if (accelSpikes > 10 || gyroVar > remGyroThreshold || breathingVar > 1.0) { // Higher spikes for REM, less false from noise
-        inductionActive = true;
-        document.getElementById('dreamState').textContent = 'Lucidity induction active – dream control starting';
-        document.getElementById('dreamState').style.color = '#2196F3';
+    if (accelSpikes > 10 || gyroVar > remGyroThreshold || breathingVar > 1.0) {
+        remCounter++;
+        calmCounter = 0;
+        if (remCounter > REM_REQUIRED) {
+            inductionActive = true;
+            document.getElementById('dreamState').textContent = 'Lucidity induction active – dream control starting';
+            document.getElementById('dreamState').style.color = '#2196F3';
+        }
     } else {
-        if (inductionActive) {
+        remCounter = 0;
+        calmCounter++;
+        if (inductionActive && calmCounter > CALM_RESET) {
+            inductionActive = false;
+            document.getElementById('dreamState').textContent = 'State: Calm (no REM yet)';
+            document.getElementById('dreamState').style.color = '#006400';
+        } else if (inductionActive) {
             document.getElementById('dreamState').textContent = 'Control sustained (closed-loop active)';
             document.getElementById('dreamState').style.color = '#2196F3';
         } else {
@@ -167,6 +186,8 @@ document.getElementById('stopSessionBtn').addEventListener('click', function() {
     dataBuffer = [];
     baroBuffer = [];
     inductionActive = false;
+    remCounter = 0;
+    calmCounter = 0;
 
     document.getElementById('sensorData').style.display = 'none';
     document.getElementById('startSessionBtn').style.display = 'inline-block';
