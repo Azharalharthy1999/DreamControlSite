@@ -6,9 +6,9 @@ let sensorInterval = null;
 let dataBuffer = [];
 const BUFFER_SIZE = 200;
 let inductionActive = false;
-let calmVarianceAvg = localStorage.getItem('calmVarianceAvg') ? parseFloat(localStorage.getItem('calmVarianceAvg')) : 5; // Raised base
-let remSpikeThreshold = localStorage.getItem('remSpikeThreshold') ? parseFloat(localStorage.getItem('remSpikeThreshold')) : 0.6; // Raised for less noise
-let remGyroThreshold = localStorage.getItem('remGyroThreshold') ? parseFloat(localStorage.getItem('remGyroThreshold')) : 8;
+let calmVarianceAvg = localStorage.getItem('calmVarianceAvg') ? parseFloat(localStorage.getItem('calmVarianceAvg')) : 6; // Raised for stable calm
+let remSpikeThreshold = localStorage.getItem('remSpikeThreshold') ? parseFloat(localStorage.getItem('remSpikeThreshold')) : 0.8; // Raised to avoid noise
+let remGyroThreshold = localStorage.getItem('remGyroThreshold') ? parseFloat(localStorage.getItem('remGyroThreshold')) : 10;
 let baroBuffer = [];
 
 let isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -115,7 +115,7 @@ function processData() {
     const mean = accels.reduce((a, b) => a + b, 0) / accels.length;
     const variance = accels.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / accels.length;
 
-    if (variance > calmVarianceAvg + 12) { // Higher for real moving
+    if (variance > calmVarianceAvg + 15) { // Higher for true moving, ignore noise
         document.getElementById('dreamState').textContent = 'State: Active (moving)';
         document.getElementById('dreamState').style.color = '#d9534f';
         inductionActive = false;
@@ -132,7 +132,7 @@ function processData() {
         breathingVar = baroBuffer.reduce((a, b) => a + Math.pow(b - baroMean, 2), 0) / baroBuffer.length * 100;
     }
 
-    if (accelSpikes > 8 || gyroVar > remGyroThreshold || breathingVar > 0.8) { // More evidence needed
+    if (accelSpikes > 10 || gyroVar > remGyroThreshold || breathingVar > 1.0) { // Higher spikes for REM, less false from noise
         inductionActive = true;
         document.getElementById('dreamState').textContent = 'Lucidity induction active – dream control starting';
         document.getElementById('dreamState').style.color = '#2196F3';
@@ -159,7 +159,7 @@ function processData() {
     }
 }
 
-// Stop session same
+// Stop session
 document.getElementById('stopSessionBtn').addEventListener('click', function() {
     window.removeEventListener('devicemotion', handleMotion);
     window.removeEventListener('deviceorientation', handleOrientation);
@@ -185,7 +185,7 @@ document.getElementById('stopSessionBtn').addEventListener('click', function() {
     document.getElementById('baroPressure').textContent = 'Detecting...';
 });
 
-// Service Worker same
+// Service Worker
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js')
         .then(() => console.log('Service Worker registered'))
