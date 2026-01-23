@@ -51,10 +51,6 @@ function startSensors() {
 
     document.getElementById('sensorStatus').textContent = 'Sensors: Running – Place beside bed for sleep';
     document.getElementById('dreamState').textContent = 'State: Detecting...';
-    inductionActive = false;
-    remCounter = 0;
-    calmCounter = 0;
-    varianceBuffer = [];
 
     sensorInterval = setInterval(() => {
         updateSensorDisplay();
