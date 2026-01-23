@@ -7,13 +7,13 @@ let dataBuffer = [];
 const BUFFER_SIZE = 200;
 let inductionActive = false;
 let remCounter = 0;
-const REM_REQUIRED = 12;
+const REM_REQUIRED = 12; // High for no blue on gentle
 let calmCounter = 0;
-const CALM_RESET = 4; // Faster for quick green reset
+const CALM_RESET = 4; // Fast reset to green
 let varianceBuffer = [];
 const VARIANCE_BUFFER_SIZE = 15;
-let calmVarianceAvg = localStorage.getItem('calmVarianceAvg') ? parseFloat(localStorage.getItem('calmVarianceAvg')) : 8; // Higher for stable green
-let remSpikeThreshold = localStorage.getItem('remSpikeThreshold') ? parseFloat(localStorage.getItem('remSpikeThreshold')) : 1.2; // Raised to ignore wobbles/lift
+let calmVarianceAvg = localStorage.getItem('calmVarianceAvg') ? parseFloat(localStorage.getItem('calmVarianceAvg')) : 8;
+let remSpikeThreshold = localStorage.getItem('remSpikeThreshold') ? parseFloat(localStorage.getItem('remSpikeThreshold')) : 1.2;
 let remGyroThreshold = localStorage.getItem('remGyroThreshold') ? parseFloat(localStorage.getItem('remGyroThreshold')) : 15;
 let baroBuffer = [];
 
